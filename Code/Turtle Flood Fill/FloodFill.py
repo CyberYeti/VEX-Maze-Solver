@@ -4,7 +4,7 @@ import time
 import MazeGen
 
 #region parameters
-LENGTH, WIDTH = 16,16
+LENGTH, WIDTH = 8,8
 SQUARE_SIZE = 40
 spaces = [[-1 for i in range(LENGTH)] for i in range(WIDTH)]
 #-1 : Unknown
@@ -56,30 +56,62 @@ def FloodFill(vWalls, hWalls):
 
     return spaces
 
+delay = 0.5
+wallsChecked = 0
 def CheckWalls(pos):
+    global wallsChecked
     #Up
     if horizontalWalls[pos[0]][pos[1]] == -1:
         horizontalWalls[pos[0]][pos[1]] = mapHW[pos[0]][pos[1]]
+
+        wallsChecked += 1
+        t.goto(t.xcor(), t.ycor() - SQUARE_SIZE/2)
+
         if horizontalWalls[pos[0]][pos[1]] == 1:
             DrawHorizontalWall(pos[0], pos[1], "Black")
+
+        time.sleep(delay)
+        t.goto(t.xcor(), t.ycor() + SQUARE_SIZE/2)
 
     #Down
     if horizontalWalls[pos[0]+1][pos[1]] == -1:
         horizontalWalls[pos[0]+1][pos[1]] = mapHW[pos[0]+1][pos[1]]
+
+        wallsChecked += 1
+        t.goto(t.xcor(), t.ycor() + SQUARE_SIZE/2)
+
         if horizontalWalls[pos[0]+1][pos[1]] == 1:
             DrawHorizontalWall(pos[0]+1, pos[1], "Black")
+
+        time.sleep(delay)
+        t.goto(t.xcor(), t.ycor() - SQUARE_SIZE/2)
 
     #Left
     if verticalWalls[pos[0]][pos[1]] == -1:
         verticalWalls[pos[0]][pos[1]] = mapVW[pos[0]][pos[1]]
+
+        wallsChecked += 1
+        t.goto(t.xcor() - SQUARE_SIZE/2, t.ycor())
+
         if verticalWalls[pos[0]][pos[1]] == 1:
             DrawVerticalWall(pos[0], pos[1], "Black")
+
+        time.sleep(delay)
+        t.goto(t.xcor() + SQUARE_SIZE/2, t.ycor())
     
     #Right
     if verticalWalls[pos[0]][pos[1]+1] == -1:
         verticalWalls[pos[0]][pos[1]+1] = mapVW[pos[0]][pos[1]+1]
+
+        wallsChecked += 1
+        t.goto(t.xcor() + SQUARE_SIZE/2, t.ycor())
+
         if verticalWalls[pos[0]][pos[1]+1] == 1:
             DrawVerticalWall(pos[0], pos[1]+1, "Black")
+
+        time.sleep(delay)
+        t.goto(t.xcor() - SQUARE_SIZE/2, t.ycor())
+    
 
 def DrawVerticalWall(y, x, color):
     pen.pencolor(color)
@@ -184,44 +216,45 @@ for i in range(4):
 pen.end_fill()
 
 #Draw Map Walls
-pen.pencolor("Blue")
-pen.width(5)
-for x in range(LENGTH+1):
-    s = [0,x]
-    for y in range(WIDTH):
-        if mapVW[y][x] != 1:
-            if s != [y,x]:
-                pen.penup()
-                pen.goto(s[1]*SQUARE_SIZE, s[0]*SQUARE_SIZE)
-                pen.pendown()
-                pen.goto(x*SQUARE_SIZE, y*SQUARE_SIZE)
-            s = [y+1,x]
-    if s != [WIDTH,x]:
-        pen.penup()
-        pen.goto(s[1]*SQUARE_SIZE, s[0]*SQUARE_SIZE)
-        pen.pendown()
-        pen.goto(x*SQUARE_SIZE, WIDTH*SQUARE_SIZE)
+# pen.pencolor("Blue")
+# pen.width(5)
+# for x in range(LENGTH+1):
+#     s = [0,x]
+#     for y in range(WIDTH):
+#         if mapVW[y][x] != 1:
+#             if s != [y,x]:
+#                 pen.penup()
+#                 pen.goto(s[1]*SQUARE_SIZE, s[0]*SQUARE_SIZE)
+#                 pen.pendown()
+#                 pen.goto(x*SQUARE_SIZE, y*SQUARE_SIZE)
+#             s = [y+1,x]
+#     if s != [WIDTH,x]:
+#         pen.penup()
+#         pen.goto(s[1]*SQUARE_SIZE, s[0]*SQUARE_SIZE)
+#         pen.pendown()
+#         pen.goto(x*SQUARE_SIZE, WIDTH*SQUARE_SIZE)
 
 
-pen.penup()
-for y in range(WIDTH+1):
-    s = [y,0]
-    for x in range(LENGTH):
-        if mapHW[y][x] != 1:
-            if s != [y,x]:
-                pen.penup()
-                pen.goto(s[1]*SQUARE_SIZE, s[0]*SQUARE_SIZE)
-                pen.pendown()
-                pen.goto(x*SQUARE_SIZE, y*SQUARE_SIZE)
-            s = [y,x+1]
-    if s != [y,LENGTH]:
-        pen.penup()
-        pen.goto(s[1]*SQUARE_SIZE, s[0]*SQUARE_SIZE)
-        pen.pendown()
-        pen.goto(LENGTH*SQUARE_SIZE, y*SQUARE_SIZE)
+# pen.penup()
+# for y in range(WIDTH+1):
+#     s = [y,0]
+#     for x in range(LENGTH):
+#         if mapHW[y][x] != 1:
+#             if s != [y,x]:
+#                 pen.penup()
+#                 pen.goto(s[1]*SQUARE_SIZE, s[0]*SQUARE_SIZE)
+#                 pen.pendown()
+#                 pen.goto(x*SQUARE_SIZE, y*SQUARE_SIZE)
+#             s = [y,x+1]
+#     if s != [y,LENGTH]:
+#         pen.penup()
+#         pen.goto(s[1]*SQUARE_SIZE, s[0]*SQUARE_SIZE)
+#         pen.pendown()
+#         pen.goto(LENGTH*SQUARE_SIZE, y*SQUARE_SIZE)
 
 #Draw Known Walls
 pen.pencolor("Black")
+pen.width(5)
 pen.penup()
 pen.goto(0,0)
 pen.pendown()
@@ -236,7 +269,7 @@ for i in range(2):
 
 t = Turtle()
 t.hideturtle()
-t.speed(0)
+t.speed(1)
 t.shape("circle")
 t.color("Black")
 t.penup()
@@ -285,6 +318,7 @@ while not finished:
     screen.update()
 
 DrawPath("Orange", startPosition.copy())
+print(wallsChecked)
 
 while True:
     screen.update()

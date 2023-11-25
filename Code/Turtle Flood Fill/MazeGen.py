@@ -2,10 +2,12 @@ import random, queue
 def DFSMaze(l, w):
     mapVW = [[1 for _ in range(l+1)] for _ in range(w)]
     mapHW = [[1 for _ in range(l)] for _ in range(w+1)]
-    start = [random.randint(0,w-1),random.randint(0,l-1)]
-    end = [random.randint(0,w-1),random.randint(0,l-1)]
-    while start == end:
-        end = [random.randint(0,w-1),random.randint(0,l-1)]
+    # start = [random.randint(0,w-1),random.randint(0,l-1)]
+    # end = [random.randint(0,w-1),random.randint(0,l-1)]
+    # while start == end:
+    #     end = [random.randint(0,w-1),random.randint(0,l-1)]
+    start = [0,0]
+    end = [l-1,w-1]
 
     #0 Not Searched
     #1 Searched

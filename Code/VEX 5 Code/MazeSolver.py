@@ -53,6 +53,10 @@ maxdtm = max(abs(dtmx), abs(dtmy))
 vmx = abs(dtmy/maxdtm)
 vmy = abs(dtmx/maxdtm)
 
+#Motor Velocity
+xVelo = 0
+yVelo = 0
+
 #Motor Setup
 yMotor.spin(FORWARD)
 xMotor1.spin(FORWARD)
@@ -63,11 +67,17 @@ xMotor1.set_velocity(0, PERCENT)
 xMotor2.set_velocity(0, PERCENT)
 
 velo = 75;
+
+#region Define Functions
 def movex(velocity):
+    global xVelo
+    xVelo = velocity
     xMotor1.set_velocity(velocity*vmx, PERCENT)
     xMotor2.set_velocity(velocity*vmx, PERCENT)
 
 def movey(velocity):
+    global yVelo
+    yVelo = velocity
     yMotor.set_velocity(velocity*vmy, PERCENT)
 
 
@@ -77,10 +87,23 @@ def getx():
 def gety():
     return yMotor.position(DEGREES)*dtmy
 
+def collideX():
+    cCurrent = xMotor1.current(CurrentUnits.AMP)
+    cPos = getx()
+    time.sleep(updateDelay)
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1,1)
+    brain.screen.print(abs(getx()-cPos) < 0.1)
+    return (abs(getx()-cPos) < 0.1)
+#endregion
+
 # Homing Sequence
 movex(-velo)
 time.sleep(waitDelay)
-while xMotor1.current(CurrentUnits.AMP) < 2:
+while not collideX():
+    # brain.screen.clear_screen()
+    # brain.screen.set_cursor(1,1)
+    # brain.screen.print(xMotor1.current(CurrentUnits.AMP))
     time.sleep(updateDelay)
 movex(0)
 xMotor1.set_position(0,DEGREES)
@@ -88,7 +111,7 @@ xMotor2.set_position(0,DEGREES)
 
 movey(-velo)
 time.sleep(waitDelay)
-while yMotor.current(CurrentUnits.AMP) < 1:
+while yMotor.current(CurrentUnits.AMP) < 0.5:
     time.sleep(updateDelay)
 movey(0)
 yMotor.set_position(0,DEGREES)
@@ -96,41 +119,29 @@ yMotor.set_position(0,DEGREES)
 #Find Bounds
 movex(velo)
 time.sleep(waitDelay)
-while xMotor1.current(CurrentUnits.AMP) < 2:
+while collideX():
     pass
 movex(0)
 
 movey(velo)
 time.sleep(waitDelay)
-while yMotor.current(CurrentUnits.AMP) < 1:
+while yMotor.current(CurrentUnits.AMP) < 0.5:
     pass
 movey(0)
 
 brain.screen.print("x:", getx(), "   y:", gety())
 
-#Random Movement
-movex(-velo)
+
+movex(-75)
 time.sleep(waitDelay)
-while xMotor1.current(CurrentUnits.AMP) < 2:
+collided = collideX()
+while not collided:
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1,1)
+    collided = collideX()
+    brain.screen.print(collided)
     time.sleep(updateDelay)
 movex(0)
-xMotor1.set_position(0,DEGREES)
-xMotor2.set_position(0,DEGREES)
-
-movey(-velo)
-time.sleep(waitDelay)
-while yMotor.current(CurrentUnits.AMP) < 1:
-    time.sleep(updateDelay)
-movey(0)
-yMotor.set_position(0,DEGREES)
-
-movex(velo)
-movey(velo)
-time.sleep(waitDelay)
-while (xMotor1.current(CurrentUnits.AMP) < 2) and (yMotor.current(CurrentUnits.AMP) < 1):
-    time.sleep(updateDelay)
-movex(0)
-movey(0)
 
 # # Collision Detection Test
 # movex(velo)

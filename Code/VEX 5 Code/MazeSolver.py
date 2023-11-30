@@ -81,54 +81,12 @@ def collideX():
     return xMotor1.torque(TorqueUnits.INLB) > 5
 
 def collideY():
-    return yMotor.torque(TorqueUnits.INLB) > 5
+    return yMotor.torque(TorqueUnits.INLB) > 2
 
-# Homing Sequence
-movex(-velo)
-time.sleep(waitDelay)
-while abs(xMotor1.velocity(PERCENT)) <= 1:
-    time.sleep(updateDelay)
-movex(0)
-xMotor1.set_position(0,DEGREES)
-xMotor2.set_position(0,DEGREES)
-
-movey(-velo)
-time.sleep(waitDelay)
-while abs(yMotor.velocity(PERCENT)) <= 1:
-    time.sleep(updateDelay)
-movey(0)
-yMotor.set_position(0,DEGREES)
-
-#Find Torque Thresholds
-movex(velo)
-time.sleep(waitDelay)
-maxTorque = 0
-while abs(xMotor1.velocity(PERCENT)) <= 1:
-    maxTorque = max(xMotor1.torque(TorqueUnits.INLB), maxTorque)
-    brain.screen.clear_screen()
-    brain.screen.set_cursor(1, 1)
-    brain.screen.print("x:", maxTorque)
-    time.sleep(updateDelay)
-movex(0)
-
-time.sleep(10)
-
-movey(velo)
-time.sleep(waitDelay)
-maxTorque = 0
-while abs(yMotor.velocity(PERCENT)) <= 1:
-    maxTorque = max(yMotor.torque(TorqueUnits.INLB), maxTorque)
-    brain.screen.clear_screen()
-    brain.screen.set_cursor(1, 1)
-    brain.screen.print("y:", maxTorque)
-    time.sleep(updateDelay)
-movey(0)
-
-
-# # Homing Sequence using torque
+# # Homing Sequence
 # movex(-velo)
 # time.sleep(waitDelay)
-# while not collideX():
+# while abs(xMotor1.velocity(PERCENT)) >= 1:
 #     time.sleep(updateDelay)
 # movex(0)
 # xMotor1.set_position(0,DEGREES)
@@ -136,7 +94,49 @@ movey(0)
 
 # movey(-velo)
 # time.sleep(waitDelay)
-# while not collideY():
+# while abs(yMotor.velocity(PERCENT)) >= 1:
 #     time.sleep(updateDelay)
 # movey(0)
 # yMotor.set_position(0,DEGREES)
+
+# #Find Torque Thresholds
+# movex(velo)
+# time.sleep(waitDelay)
+# maxTorque = 0
+# while abs(xMotor1.velocity(PERCENT)) >= 1:
+#     maxTorque = max(xMotor1.torque(TorqueUnits.INLB), maxTorque)
+#     brain.screen.clear_screen()
+#     brain.screen.set_cursor(1, 1)
+#     brain.screen.print("x:", maxTorque)
+#     time.sleep(updateDelay)
+# movex(0)
+
+# time.sleep(10)
+
+# movey(velo)
+# time.sleep(waitDelay)
+# maxTorque = 0
+# while abs(yMotor.velocity(PERCENT)) >= 1:
+#     maxTorque = max(yMotor.torque(TorqueUnits.INLB), maxTorque)
+#     brain.screen.clear_screen()
+#     brain.screen.set_cursor(1, 1)
+#     brain.screen.print("y:", maxTorque)
+#     time.sleep(updateDelay)
+# movey(0)
+
+
+# Homing Sequence using torque
+movex(-velo)
+time.sleep(waitDelay)
+while not collideX():
+    time.sleep(updateDelay)
+movex(0)
+xMotor1.set_position(0,DEGREES)
+xMotor2.set_position(0,DEGREES)
+
+movey(-velo)
+time.sleep(waitDelay)
+while not collideY():
+    time.sleep(updateDelay)
+movey(0)
+yMotor.set_position(0,DEGREES)

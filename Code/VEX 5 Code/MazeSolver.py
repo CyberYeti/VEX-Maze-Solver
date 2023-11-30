@@ -62,7 +62,7 @@ yMotor.set_velocity(0, PERCENT)
 xMotor1.set_velocity(0, PERCENT)
 xMotor2.set_velocity(0, PERCENT)
 
-velo = 75;
+velo = 75
 def movex(velocity):
     xMotor1.set_velocity(velocity*vmx, PERCENT)
     xMotor2.set_velocity(velocity*vmx, PERCENT)
@@ -77,10 +77,16 @@ def getx():
 def gety():
     return yMotor.position(DEGREES)*dtmy
 
+def collideX():
+    return xMotor1.torque(TorqueUnits.INLB) > 5
+
+def collideY():
+    return yMotor.torque(TorqueUnits.INLB) > 5
+
 # Homing Sequence
 movex(-velo)
 time.sleep(waitDelay)
-while xMotor1.current(CurrentUnits.AMP) < 2:
+while abs(xMotor1.velocity(PERCENT)) <= 1:
     time.sleep(updateDelay)
 movex(0)
 xMotor1.set_position(0,DEGREES)
@@ -88,57 +94,49 @@ xMotor2.set_position(0,DEGREES)
 
 movey(-velo)
 time.sleep(waitDelay)
-while yMotor.current(CurrentUnits.AMP) < 1:
+while abs(yMotor.velocity(PERCENT)) <= 1:
     time.sleep(updateDelay)
 movey(0)
 yMotor.set_position(0,DEGREES)
 
-#Find Bounds
+#Find Torque Thresholds
 movex(velo)
 time.sleep(waitDelay)
-while xMotor1.current(CurrentUnits.AMP) < 2:
-    pass
+maxTorque = 0
+while abs(xMotor1.velocity(PERCENT)) <= 1:
+    maxTorque = max(xMotor1.torque(TorqueUnits.INLB), maxTorque)
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1, 1)
+    brain.screen.print("x:", maxTorque)
+    time.sleep(updateDelay)
 movex(0)
+
+time.sleep(10)
 
 movey(velo)
 time.sleep(waitDelay)
-while yMotor.current(CurrentUnits.AMP) < 1:
-    pass
-movey(0)
-
-brain.screen.print("x:", getx(), "   y:", gety())
-
-#Random Movement
-movex(-velo)
-time.sleep(waitDelay)
-while xMotor1.current(CurrentUnits.AMP) < 2:
-    time.sleep(updateDelay)
-movex(0)
-xMotor1.set_position(0,DEGREES)
-xMotor2.set_position(0,DEGREES)
-
-movey(-velo)
-time.sleep(waitDelay)
-while yMotor.current(CurrentUnits.AMP) < 1:
+maxTorque = 0
+while abs(yMotor.velocity(PERCENT)) <= 1:
+    maxTorque = max(yMotor.torque(TorqueUnits.INLB), maxTorque)
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1, 1)
+    brain.screen.print("y:", maxTorque)
     time.sleep(updateDelay)
 movey(0)
-yMotor.set_position(0,DEGREES)
 
-movex(velo)
-movey(velo)
-time.sleep(waitDelay)
-while (xMotor1.current(CurrentUnits.AMP) < 2) and (yMotor.current(CurrentUnits.AMP) < 1):
-    time.sleep(updateDelay)
-movex(0)
-movey(0)
 
-# # Collision Detection Test
-# movex(velo)
-# while True:
-#     brain.screen.clear_screen()
-#     brain.screen.set_cursor(1, 1)
-#     brain.screen.print(xMotor1.current(CurrentUnits.AMP))
-#     if(xMotor1.current(CurrentUnits.AMP) > 1.25):
-#         velo *= -1
-#         movex(velo)
-#     time.sleep(0.05)
+# # Homing Sequence using torque
+# movex(-velo)
+# time.sleep(waitDelay)
+# while not collideX():
+#     time.sleep(updateDelay)
+# movex(0)
+# xMotor1.set_position(0,DEGREES)
+# xMotor2.set_position(0,DEGREES)
+
+# movey(-velo)
+# time.sleep(waitDelay)
+# while not collideY():
+#     time.sleep(updateDelay)
+# movey(0)
+# yMotor.set_position(0,DEGREES)

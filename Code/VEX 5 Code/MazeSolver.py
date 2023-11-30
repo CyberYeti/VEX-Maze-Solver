@@ -36,14 +36,22 @@ print("\033[2J")
 # ------------------------------------------
 
 # Library imports
-import time
+import time, math
 
-#Variables
+#region Variables
+velo = 75
 waitDelay = 0.5
 updateDelay = 0.05
+tolerence = 1.5
+
+#Maze Info
+ROW, COL = 6, 6
+SQUARE_SIZE = 35
+x0, y0 = 0, 0 #represents the position of the first grid square
+cx, cx = 0, 0 #represents the current coordinate
 
 #Degrees to mm
-chainLinkLen = 25.5/25
+chainLinkLen = 255.0/25
 dtmx = 12*chainLinkLen/360
 dtmy = 6*chainLinkLen/360
 maxdtm = max(abs(dtmx), abs(dtmy))
@@ -53,7 +61,9 @@ maxdtm = max(abs(dtmx), abs(dtmy))
 vmx = abs(dtmy/maxdtm)
 vmy = abs(dtmx/maxdtm)
 
-#Motor Setup
+#endregion
+
+#region Motor Setup
 yMotor.spin(FORWARD)
 xMotor1.spin(FORWARD)
 xMotor2.spin(FORWARD)
@@ -62,14 +72,28 @@ yMotor.set_velocity(0, PERCENT)
 xMotor1.set_velocity(0, PERCENT)
 xMotor2.set_velocity(0, PERCENT)
 
-velo = 75;
+yMotor.set_stopping(HOLD)
+xMotor1.set_stopping(HOLD)
+xMotor2.set_stopping(HOLD)
+#endregion
+
+#region Function Def
 def movex(velocity):
-    xMotor1.set_velocity(velocity*vmx, PERCENT)
-    xMotor2.set_velocity(velocity*vmx, PERCENT)
+    if velocity == 0:
+        xMotor1.stop()
+        xMotor2.stop()
+    else:
+        xMotor1.spin(FORWARD)
+        xMotor2.spin(FORWARD)
+        xMotor1.set_velocity(velocity*vmx, PERCENT)
+        xMotor2.set_velocity(velocity*vmx, PERCENT)
 
 def movey(velocity):
-    yMotor.set_velocity(velocity*vmy, PERCENT)
-
+    if velocity == 0:
+        yMotor.stop()
+    else:
+        yMotor.spin(FORWARD)
+        yMotor.set_velocity(velocity*vmy, PERCENT)
 
 def getx():
     return xMotor1.position(DEGREES)*dtmx
@@ -77,68 +101,97 @@ def getx():
 def gety():
     return yMotor.position(DEGREES)*dtmy
 
-# Homing Sequence
-movex(-velo)
-time.sleep(waitDelay)
-while xMotor1.current(CurrentUnits.AMP) < 2:
-    time.sleep(updateDelay)
-movex(0)
-xMotor1.set_position(0,DEGREES)
-xMotor2.set_position(0,DEGREES)
+def collideX():
+    return xMotor1.current(CurrentUnits.AMP) > 2
 
-movey(-velo)
-time.sleep(waitDelay)
-while yMotor.current(CurrentUnits.AMP) < 1:
-    time.sleep(updateDelay)
-movey(0)
-yMotor.set_position(0,DEGREES)
+def collideY():
+    return yMotor.current(CurrentUnits.AMP) > 1
 
-#Find Bounds
-movex(velo)
-time.sleep(waitDelay)
-while xMotor1.current(CurrentUnits.AMP) < 2:
-    pass
-movex(0)
+def homeDevice():
+    # Homing Sequence
+    movex(-velo)
+    time.sleep(waitDelay)
+    while not collideX():
+        time.sleep(updateDelay)
+    movex(0)
+    xMotor1.set_position(0,DEGREES)
+    xMotor2.set_position(0,DEGREES)
 
-movey(velo)
-time.sleep(waitDelay)
-while yMotor.current(CurrentUnits.AMP) < 1:
-    pass
-movey(0)
+    movey(-velo)
+    time.sleep(waitDelay)
+    while not collideY():
+        time.sleep(updateDelay)
+    movey(0)
+    yMotor.set_position(0,DEGREES)
 
-brain.screen.print("x:", getx(), "   y:", gety())
+def goto(x,y):
+    dx = x - getx()
+    dy = y - gety()
+    while (abs(dx) > tolerence) or (abs(dy) > tolerence):
+        dx = x - getx()
+        dy = y - gety()
+        if abs(dx) > tolerence:
+            movex(math.copysign(velo, dx))
+        else:
+            movex(0)
 
-#Random Movement
-movex(-velo)
-time.sleep(waitDelay)
-while xMotor1.current(CurrentUnits.AMP) < 2:
-    time.sleep(updateDelay)
-movex(0)
-xMotor1.set_position(0,DEGREES)
-xMotor2.set_position(0,DEGREES)
+        if abs(dy) > tolerence:
+            movey(math.copysign(velo, dy))
+        else:
+            movey(0)
 
-movey(-velo)
-time.sleep(waitDelay)
-while yMotor.current(CurrentUnits.AMP) < 1:
-    time.sleep(updateDelay)
-movey(0)
-yMotor.set_position(0,DEGREES)
+#A possible future version of goto that would detect whether it has collided with something
+#while traveling and return to its inital position if so
+def gotoCol(x,y):
+    ix, iy = getx(), gety() #initial x and y
+    tx, ty = x, y #Targeted x and y
+    collided = False
 
-movex(velo)
-movey(velo)
-time.sleep(waitDelay)
-while (xMotor1.current(CurrentUnits.AMP) < 2) and (yMotor.current(CurrentUnits.AMP) < 1):
-    time.sleep(updateDelay)
-movex(0)
-movey(0)
+    dx = tx - ix
+    dy = ty - iy
+    while (abs(dx) > tolerence) or (abs(dy) > tolerence):
+        if collideX() or collideY():
+            collided = True
+            tx, ty = ix, iy
 
-# # Collision Detection Test
-# movex(velo)
-# while True:
-#     brain.screen.clear_screen()
-#     brain.screen.set_cursor(1, 1)
-#     brain.screen.print(xMotor1.current(CurrentUnits.AMP))
-#     if(xMotor1.current(CurrentUnits.AMP) > 1.25):
-#         velo *= -1
-#         movex(velo)
-#     time.sleep(0.05)
+        dx = tx - getx()
+        dy = ty - gety()
+        if abs(dx) > tolerence:
+            movex(math.copysign(velo, dx))
+        else:
+            movex(0)
+
+        if abs(dy) > tolerence:
+            movey(math.copysign(velo, dy))
+        else:
+            movey(0)
+    
+    return collided
+
+def zeroMaze():
+    homeDevice()
+    goto(x0, y0)
+    yMotor.set_position(0,DEGREES)
+    xMotor1.set_position(0,DEGREES)
+    xMotor2.set_position(0,DEGREES)
+    global cx, cy
+    cx, cy = 0, 0
+
+#These two movement functions are created to prevent me from accidentally making diagonal moves.
+def moveVerticalTile(numTiles):
+    global cy
+    cy = cy + numTiles
+    cy = min(cy, ROW-1)
+    cy = max(cy, 0)
+        
+    goto(cx*SQUARE_SIZE, cy*SQUARE_SIZE)
+
+def moveHorizontalTile(numTiles):
+    global cx
+    cx = cx + numTiles
+    cx = min(cx, COL-1)
+    cx = max(cx, 0)
+        
+    goto(cx*SQUARE_SIZE, cy*SQUARE_SIZE)
+#endregion
+

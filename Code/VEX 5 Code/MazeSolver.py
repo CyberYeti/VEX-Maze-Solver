@@ -47,7 +47,7 @@ tolerence = 1.5
 #Maze Info
 ROW, COL = 6, 6
 SQUARE_SIZE = 35
-x0, y0 = 0, 0 #represents the position of the first grid square
+x0, y0 = 20, 20 #represents the position of the first grid square
 cx, cx = 0, 0 #represents the current coordinate
 
 #Degrees to mm
@@ -102,10 +102,10 @@ def gety():
     return yMotor.position(DEGREES)*dtmy
 
 def collideX():
-    return xMotor1.current(CurrentUnits.AMP) > 2
+    return xMotor1.torque(TorqueUnits.INLB) > 5
 
 def collideY():
-    return yMotor.current(CurrentUnits.AMP) > 1
+    return yMotor.torque(TorqueUnits.INLB) > 2
 
 def homeDevice():
     # Homing Sequence
@@ -195,3 +195,8 @@ def moveHorizontalTile(numTiles):
     goto(cx*SQUARE_SIZE, cy*SQUARE_SIZE)
 #endregion
 
+# homeDevice()
+zeroMaze()
+time.sleep(waitDelay)
+moveVerticalTile(4)
+moveHorizontalTile(1)

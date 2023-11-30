@@ -6,9 +6,9 @@ import urandom
 brain=Brain()
 
 # Robot configuration code
-yMotor = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
-xMotor1 = Motor(Ports.PORT9, GearSetting.RATIO_18_1, True)
-xMotor2 = Motor(Ports.PORT21, GearSetting.RATIO_18_1, False)
+xMotor = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
+yMotor1 = Motor(Ports.PORT9, GearSetting.RATIO_18_1, True)
+yMotor2 = Motor(Ports.PORT21, GearSetting.RATIO_18_1, False)
 
 
 # wait for rotation sensor to fully initialize
@@ -64,65 +64,65 @@ vmy = abs(dtmx/maxdtm)
 #endregion
 
 #region Motor Setup
-yMotor.spin(FORWARD)
-xMotor1.spin(FORWARD)
-xMotor2.spin(FORWARD)
+xMotor.spin(FORWARD)
+yMotor1.spin(FORWARD)
+yMotor2.spin(FORWARD)
 
-yMotor.set_velocity(0, PERCENT)
-xMotor1.set_velocity(0, PERCENT)
-xMotor2.set_velocity(0, PERCENT)
+xMotor.set_velocity(0, PERCENT)
+yMotor1.set_velocity(0, PERCENT)
+yMotor2.set_velocity(0, PERCENT)
 
-yMotor.set_stopping(HOLD)
-xMotor1.set_stopping(HOLD)
-xMotor2.set_stopping(HOLD)
+xMotor.set_stopping(HOLD)
+yMotor1.set_stopping(HOLD)
+yMotor2.set_stopping(HOLD)
 #endregion
 
 #region Function Def
-def movex(velocity):
-    if velocity == 0:
-        xMotor1.stop()
-        xMotor2.stop()
-    else:
-        xMotor1.spin(FORWARD)
-        xMotor2.spin(FORWARD)
-        xMotor1.set_velocity(velocity*vmx, PERCENT)
-        xMotor2.set_velocity(velocity*vmx, PERCENT)
-
 def movey(velocity):
     if velocity == 0:
-        yMotor.stop()
+        yMotor1.stop()
+        yMotor2.stop()
     else:
-        yMotor.spin(FORWARD)
-        yMotor.set_velocity(velocity*vmy, PERCENT)
+        yMotor1.spin(FORWARD)
+        yMotor2.spin(FORWARD)
+        yMotor1.set_velocity(velocity*vmx, PERCENT)
+        yMotor2.set_velocity(velocity*vmx, PERCENT)
 
-def getx():
-    return xMotor1.position(DEGREES)*dtmx
+def movex(velocity):
+    if velocity == 0:
+        xMotor.stop()
+    else:
+        xMotor.spin(FORWARD)
+        xMotor.set_velocity(velocity*vmy, PERCENT)
 
 def gety():
-    return yMotor.position(DEGREES)*dtmy
+    return yMotor1.position(DEGREES)*dtmx
 
-def collideX():
-    return xMotor1.torque(TorqueUnits.INLB) > 5
+def getx():
+    return xMotor.position(DEGREES)*dtmy
 
 def collideY():
-    return yMotor.torque(TorqueUnits.INLB) > 2
+    return yMotor1.torque(TorqueUnits.INLB) > 5
+
+def collideX():
+    return xMotor.torque(TorqueUnits.INLB) > 2
 
 def homeDevice():
     # Homing Sequence
-    movex(-velo)
-    time.sleep(waitDelay)
-    while not collideX():
-        time.sleep(updateDelay)
-    movex(0)
-    xMotor1.set_position(0,DEGREES)
-    xMotor2.set_position(0,DEGREES)
-
     movey(-velo)
     time.sleep(waitDelay)
     while not collideY():
         time.sleep(updateDelay)
     movey(0)
-    yMotor.set_position(0,DEGREES)
+    yMotor1.set_position(0,DEGREES)
+    yMotor2.set_position(0,DEGREES)
+
+    movex(-velo)
+    time.sleep(waitDelay)
+    while not collideX():
+        time.sleep(updateDelay)
+    movex(0)
+    xMotor.set_position(0,DEGREES)
 
 def goto(x,y):
     dx = x - getx()
@@ -150,7 +150,7 @@ def gotoCol(x,y):
     dx = tx - ix
     dy = ty - iy
     while (abs(dx) > tolerence) or (abs(dy) > tolerence):
-        if collideX() or collideY():
+        if collideY() or collideX():
             collided = True
             tx, ty = ix, iy
 
@@ -171,9 +171,9 @@ def gotoCol(x,y):
 def zeroMaze():
     homeDevice()
     goto(x0, y0)
-    yMotor.set_position(0,DEGREES)
-    xMotor1.set_position(0,DEGREES)
-    xMotor2.set_position(0,DEGREES)
+    xMotor.set_position(0,DEGREES)
+    yMotor1.set_position(0,DEGREES)
+    yMotor2.set_position(0,DEGREES)
     global cx, cy
     cx, cy = 0, 0
 
@@ -200,3 +200,6 @@ zeroMaze()
 time.sleep(waitDelay)
 moveVerticalTile(4)
 moveHorizontalTile(1)
+
+# time.sleep(waitDelay)
+# gotoCol(0,0)

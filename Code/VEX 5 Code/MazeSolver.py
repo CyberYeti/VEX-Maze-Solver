@@ -6,9 +6,6 @@ import urandom
 brain=Brain()
 
 # Robot configuration code
-xMotor = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
-yMotor1 = Motor(Ports.PORT9, GearSetting.RATIO_18_1, True)
-yMotor2 = Motor(Ports.PORT21, GearSetting.RATIO_18_1, False)
 
 
 # wait for rotation sensor to fully initialize
@@ -42,13 +39,16 @@ import time, math
 velo = 75
 waitDelay = 0.5
 updateDelay = 0.05
-tolerence = 1.5
+tolerence = 2
 
 #Maze Info
 ROW, COL = 6, 6
 SQUARE_SIZE = 35
-x0, y0 = 20, 20 #represents the position of the first grid square
+x0, y0 = 47.5, 30 #represents the position of the first grid square
 cx, cx = 0, 0 #represents the current coordinate
+
+xTorqueThesh = 2
+yTorqueThesh = 5
 
 #Degrees to mm
 chainLinkLen = 255.0/25
@@ -75,6 +75,7 @@ yMotor2.set_velocity(0, PERCENT)
 xMotor.set_stopping(HOLD)
 yMotor1.set_stopping(HOLD)
 yMotor2.set_stopping(HOLD)
+
 #endregion
 
 #region Function Def
@@ -102,10 +103,10 @@ def getx():
     return xMotor.position(DEGREES)*dtmy
 
 def collideY():
-    return yMotor1.torque(TorqueUnits.INLB) > 5
+    return yMotor1.torque(TorqueUnits.INLB) > yTorqueThesh
 
 def collideX():
-    return xMotor.torque(TorqueUnits.INLB) > 2
+    return xMotor.torque(TorqueUnits.INLB) > xTorqueThesh
 
 def homeDevice():
     # Homing Sequence
@@ -149,11 +150,9 @@ def gotoCol(x,y):
 
     dx = tx - ix
     dy = ty - iy
-    while (abs(dx) > tolerence) or (abs(dy) > tolerence):
-        if collideY() or collideX():
-            collided = True
-            tx, ty = ix, iy
 
+    brain.timer.clear()
+    while (abs(dx) > tolerence) or (abs(dy) > tolerence):
         dx = tx - getx()
         dy = ty - gety()
         if abs(dx) > tolerence:
@@ -165,6 +164,17 @@ def gotoCol(x,y):
             movey(math.copysign(velo, dy))
         else:
             movey(0)
+
+        if abs(dx) > 10 and abs(dy) > 10 and brain.timer.time(SECONDS) > waitDelay and (collideY() or collideX()):
+            brain.screen.clear_screen()
+            brain.screen.set_cursor(1,1)
+            brain.screen.print("x:", collideX())
+            brain.screen.set_cursor(2,1)
+            brain.screen.print("y:", collideY())
+            collided = True
+            tx, ty = ix, iy
+
+        time.sleep(updateDelay)
     
     return collided
 
@@ -184,7 +194,7 @@ def moveVerticalTile(numTiles):
     cy = min(cy, ROW-1)
     cy = max(cy, 0)
         
-    goto(cx*SQUARE_SIZE, cy*SQUARE_SIZE)
+    goto(cx*(SQUARE_SIZE + 2), cy*(SQUARE_SIZE + 1))
 
 def moveHorizontalTile(numTiles):
     global cx
@@ -192,14 +202,16 @@ def moveHorizontalTile(numTiles):
     cx = min(cx, COL-1)
     cx = max(cx, 0)
         
-    goto(cx*SQUARE_SIZE, cy*SQUARE_SIZE)
+    goto(cx*(SQUARE_SIZE + 2), cy*(SQUARE_SIZE + 1))
 #endregion
 
 # homeDevice()
 zeroMaze()
 time.sleep(waitDelay)
-moveVerticalTile(4)
-moveHorizontalTile(1)
+moveVerticalTile(5)
+moveHorizontalTile(5)
+moveVerticalTile(-5)
 
-# time.sleep(waitDelay)
-# gotoCol(0,0)
+
+time.sleep(waitDelay)
+gotoCol(0,0)

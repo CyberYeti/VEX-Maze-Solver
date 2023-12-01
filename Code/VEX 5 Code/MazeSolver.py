@@ -6,7 +6,9 @@ import urandom
 brain=Brain()
 
 # Robot configuration code
-
+xMotor = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
+yMotor1 = Motor(Ports.PORT9, GearSetting.RATIO_18_1, True)
+yMotor2 = Motor(Ports.PORT21, GearSetting.RATIO_18_1, False)
 
 # wait for rotation sensor to fully initialize
 wait(30, MSEC)
@@ -141,43 +143,6 @@ def goto(x,y):
         else:
             movey(0)
 
-#A possible future version of goto that would detect whether it has collided with something
-#while traveling and return to its inital position if so
-def gotoCol(x,y):
-    ix, iy = getx(), gety() #initial x and y
-    tx, ty = x, y #Targeted x and y
-    collided = False
-
-    dx = tx - ix
-    dy = ty - iy
-
-    brain.timer.clear()
-    while (abs(dx) > tolerence) or (abs(dy) > tolerence):
-        dx = tx - getx()
-        dy = ty - gety()
-        if abs(dx) > tolerence:
-            movex(math.copysign(velo, dx))
-        else:
-            movex(0)
-
-        if abs(dy) > tolerence:
-            movey(math.copysign(velo, dy))
-        else:
-            movey(0)
-
-        if abs(dx) > 10 and abs(dy) > 10 and brain.timer.time(SECONDS) > waitDelay and (collideY() or collideX()):
-            brain.screen.clear_screen()
-            brain.screen.set_cursor(1,1)
-            brain.screen.print("x:", collideX())
-            brain.screen.set_cursor(2,1)
-            brain.screen.print("y:", collideY())
-            collided = True
-            tx, ty = ix, iy
-
-        time.sleep(updateDelay)
-    
-    return collided
-
 def zeroMaze():
     homeDevice()
     goto(x0, y0)
@@ -211,7 +176,3 @@ time.sleep(waitDelay)
 moveVerticalTile(5)
 moveHorizontalTile(5)
 moveVerticalTile(-5)
-
-
-time.sleep(waitDelay)
-gotoCol(0,0)

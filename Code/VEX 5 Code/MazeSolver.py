@@ -6,10 +6,9 @@ import urandom
 brain=Brain()
 
 # Robot configuration code
-yMotor = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
-xMotor1 = Motor(Ports.PORT9, GearSetting.RATIO_18_1, True)
-xMotor2 = Motor(Ports.PORT21, GearSetting.RATIO_18_1, False)
-
+xMotor = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
+yMotor1 = Motor(Ports.PORT9, GearSetting.RATIO_18_1, True)
+yMotor2 = Motor(Ports.PORT21, GearSetting.RATIO_18_1, False)
 
 # wait for rotation sensor to fully initialize
 wait(30, MSEC)
@@ -36,14 +35,25 @@ print("\033[2J")
 # ------------------------------------------
 
 # Library imports
-import time
+import time, math
 
-#Variables
+#region Variables
+velo = 75
 waitDelay = 0.5
 updateDelay = 0.05
+tolerence = 2
+
+#Maze Info
+ROW, COL = 6, 6
+SQUARE_SIZE = 35
+x0, y0 = 47.5, 30 #represents the position of the first grid square
+cx, cx = 0, 0 #represents the current coordinate
+
+xTorqueThesh = 2
+yTorqueThesh = 5
 
 #Degrees to mm
-chainLinkLen = 25.5/25
+chainLinkLen = 255.0/25
 dtmx = 12*chainLinkLen/360
 dtmy = 6*chainLinkLen/360
 maxdtm = max(abs(dtmx), abs(dtmy))
@@ -53,92 +63,116 @@ maxdtm = max(abs(dtmx), abs(dtmy))
 vmx = abs(dtmy/maxdtm)
 vmy = abs(dtmx/maxdtm)
 
-#Motor Setup
-yMotor.spin(FORWARD)
-xMotor1.spin(FORWARD)
-xMotor2.spin(FORWARD)
+#endregion
 
-yMotor.set_velocity(0, PERCENT)
-xMotor1.set_velocity(0, PERCENT)
-xMotor2.set_velocity(0, PERCENT)
+#region Motor Setup
+xMotor.spin(FORWARD)
+yMotor1.spin(FORWARD)
+yMotor2.spin(FORWARD)
 
-velo = 75;
-def movex(velocity):
-    xMotor1.set_velocity(velocity*vmx, PERCENT)
-    xMotor2.set_velocity(velocity*vmx, PERCENT)
+xMotor.set_velocity(0, PERCENT)
+yMotor1.set_velocity(0, PERCENT)
+yMotor2.set_velocity(0, PERCENT)
 
+xMotor.set_stopping(HOLD)
+yMotor1.set_stopping(HOLD)
+yMotor2.set_stopping(HOLD)
+
+#endregion
+
+#region Function Def
 def movey(velocity):
-    yMotor.set_velocity(velocity*vmy, PERCENT)
+    if velocity == 0:
+        yMotor1.stop()
+        yMotor2.stop()
+    else:
+        yMotor1.spin(FORWARD)
+        yMotor2.spin(FORWARD)
+        yMotor1.set_velocity(velocity*vmx, PERCENT)
+        yMotor2.set_velocity(velocity*vmx, PERCENT)
 
-
-def getx():
-    return xMotor1.position(DEGREES)*dtmx
+def movex(velocity):
+    if velocity == 0:
+        xMotor.stop()
+    else:
+        xMotor.spin(FORWARD)
+        xMotor.set_velocity(velocity*vmy, PERCENT)
 
 def gety():
-    return yMotor.position(DEGREES)*dtmy
+    return yMotor1.position(DEGREES)*dtmx
 
-# Homing Sequence
-movex(-velo)
+def getx():
+    return xMotor.position(DEGREES)*dtmy
+
+def collideY():
+    return yMotor1.torque(TorqueUnits.INLB) > yTorqueThesh
+
+def collideX():
+    return xMotor.torque(TorqueUnits.INLB) > xTorqueThesh
+
+def homeDevice():
+    # Homing Sequence
+    movey(-velo)
+    time.sleep(waitDelay)
+    while not collideY():
+        time.sleep(updateDelay)
+    movey(0)
+    yMotor1.set_position(0,DEGREES)
+    yMotor2.set_position(0,DEGREES)
+
+    movex(-velo)
+    time.sleep(waitDelay)
+    while not collideX():
+        time.sleep(updateDelay)
+    movex(0)
+    xMotor.set_position(0,DEGREES)
+
+def goto(x,y):
+    dx = x - getx()
+    dy = y - gety()
+    while (abs(dx) > tolerence) or (abs(dy) > tolerence):
+        dx = x - getx()
+        dy = y - gety()
+        if abs(dx) > tolerence:
+            movex(math.copysign(velo, dx))
+        else:
+            movex(0)
+
+        if abs(dy) > tolerence:
+            movey(math.copysign(velo, dy))
+        else:
+            movey(0)
+
+def zeroMaze():
+    homeDevice()
+    goto(x0, y0)
+    xMotor.set_position(0,DEGREES)
+    yMotor1.set_position(0,DEGREES)
+    yMotor2.set_position(0,DEGREES)
+    global cx, cy
+    cx, cy = 0, 0
+
+#These two movement functions are created to prevent me from accidentally making diagonal moves.
+def moveVerticalTile(numTiles):
+    global cy
+    cy = cy + numTiles
+    cy = min(cy, ROW-1)
+    cy = max(cy, 0)
+        
+    goto(cx*(SQUARE_SIZE + 2), cy*(SQUARE_SIZE + 1))
+
+def moveHorizontalTile(numTiles):
+    global cx
+    cx = cx + numTiles
+    cx = min(cx, COL-1)
+    cx = max(cx, 0)
+        
+    goto(cx*(SQUARE_SIZE + 2), cy*(SQUARE_SIZE + 1))
+#endregion
+
+# homeDevice()
+zeroMaze()
 time.sleep(waitDelay)
-while xMotor1.current(CurrentUnits.AMP) < 2:
-    time.sleep(updateDelay)
-movex(0)
-xMotor1.set_position(0,DEGREES)
-xMotor2.set_position(0,DEGREES)
-
-movey(-velo)
-time.sleep(waitDelay)
-while yMotor.current(CurrentUnits.AMP) < 1:
-    time.sleep(updateDelay)
-movey(0)
-yMotor.set_position(0,DEGREES)
-
-#Find Bounds
-movex(velo)
-time.sleep(waitDelay)
-while xMotor1.current(CurrentUnits.AMP) < 2:
-    pass
-movex(0)
-
-movey(velo)
-time.sleep(waitDelay)
-while yMotor.current(CurrentUnits.AMP) < 1:
-    pass
-movey(0)
-
-brain.screen.print("x:", getx(), "   y:", gety())
-
-#Random Movement
-movex(-velo)
-time.sleep(waitDelay)
-while xMotor1.current(CurrentUnits.AMP) < 2:
-    time.sleep(updateDelay)
-movex(0)
-xMotor1.set_position(0,DEGREES)
-xMotor2.set_position(0,DEGREES)
-
-movey(-velo)
-time.sleep(waitDelay)
-while yMotor.current(CurrentUnits.AMP) < 1:
-    time.sleep(updateDelay)
-movey(0)
-yMotor.set_position(0,DEGREES)
-
-movex(velo)
-movey(velo)
-time.sleep(waitDelay)
-while (xMotor1.current(CurrentUnits.AMP) < 2) and (yMotor.current(CurrentUnits.AMP) < 1):
-    time.sleep(updateDelay)
-movex(0)
-movey(0)
-
-# # Collision Detection Test
-# movex(velo)
-# while True:
-#     brain.screen.clear_screen()
-#     brain.screen.set_cursor(1, 1)
-#     brain.screen.print(xMotor1.current(CurrentUnits.AMP))
-#     if(xMotor1.current(CurrentUnits.AMP) > 1.25):
-#         velo *= -1
-#         movex(velo)
-#     time.sleep(0.05)
+moveVerticalTile(5)
+moveHorizontalTile(5)
+moveVerticalTile(-5)

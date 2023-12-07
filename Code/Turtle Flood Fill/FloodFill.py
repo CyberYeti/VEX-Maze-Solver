@@ -2,9 +2,8 @@ import queue
 from turtle import Screen, Turtle
 import time
 import MazeGen
-
 #region parameters
-LENGTH, WIDTH = 8,8
+LENGTH, WIDTH = 6,6
 SQUARE_SIZE = 40
 spaces = [[-1 for i in range(LENGTH)] for i in range(WIDTH)]
 #-1 : Unknown
@@ -16,9 +15,25 @@ horizontalWalls = [[1 for i in range(LENGTH)], *[[-1 for i in range(LENGTH)] for
 #Randomly Generate Maze
 GoalSquares = [[]]
 mapVW, mapHW, startPosition, GoalSquares[0] = MazeGen.DFSMaze(LENGTH, WIDTH)
+mapVW = [
+    [1,0,1,0,0,0,1],
+    [1,0,0,1,1,1,1],
+    [1,1,0,0,1,1,1],
+    [1,1,0,1,1,0,1],
+    [1,1,1,0,1,0,1],
+    [1,0,1,0,1,0,1]
+]
+mapHW = [
+    [1,1,1,1,1,1],
+    [0,1,0,1,0,0],
+    [0,1,1,0,0,0],
+    [0,1,0,0,0,1],
+    [0,0,1,0,1,0],
+    [0,0,0,1,0,1],
+    [1,1,1,1,1,1]
+]
 
 #endregion
-
 #region Functions
 def FloodFill(vWalls, hWalls):
     #Create an empty array to start FloodFilling. 
@@ -28,7 +43,6 @@ def FloodFill(vWalls, hWalls):
     for pos in GoalSquares:
         spaces[pos[0]][pos[1]] = 0
         q.put(pos)
-
     #Start searching elements
     while not q.empty():
         pos =  q.get()
@@ -38,12 +52,10 @@ def FloodFill(vWalls, hWalls):
         if horizontalWalls[pos[0]][pos[1]] != 1 and spaces[pos[0]-1][pos[1]] == -1:
             spaces[pos[0]-1][pos[1]] = value
             q.put([pos[0]-1,pos[1]])
-
         #Down
         if horizontalWalls[pos[0]+1][pos[1]] != 1 and spaces[pos[0]+1][pos[1]] == -1:
             spaces[pos[0]+1][pos[1]] = value
             q.put([pos[0]+1, pos[1]])
-
         #Left
         if verticalWalls[pos[0]][pos[1]] != 1 and spaces[pos[0]][pos[1]-1] == -1:
             spaces[pos[0]][pos[1]-1] = value
@@ -53,66 +65,29 @@ def FloodFill(vWalls, hWalls):
         if verticalWalls[pos[0]][pos[1]+1] != 1 and spaces[pos[0]][pos[1]+1] == -1:
             spaces[pos[0]][pos[1]+1] = value
             q.put([pos[0], pos[1]+1])
-
     return spaces
-
-delay = 0.5
-wallsChecked = 0
 def CheckWalls(pos):
-    global wallsChecked
     #Up
     if horizontalWalls[pos[0]][pos[1]] == -1:
         horizontalWalls[pos[0]][pos[1]] = mapHW[pos[0]][pos[1]]
-
-        wallsChecked += 1
-        t.goto(t.xcor(), t.ycor() - SQUARE_SIZE/2)
-
         if horizontalWalls[pos[0]][pos[1]] == 1:
             DrawHorizontalWall(pos[0], pos[1], "Black")
-
-        time.sleep(delay)
-        t.goto(t.xcor(), t.ycor() + SQUARE_SIZE/2)
-
     #Down
     if horizontalWalls[pos[0]+1][pos[1]] == -1:
         horizontalWalls[pos[0]+1][pos[1]] = mapHW[pos[0]+1][pos[1]]
-
-        wallsChecked += 1
-        t.goto(t.xcor(), t.ycor() + SQUARE_SIZE/2)
-
         if horizontalWalls[pos[0]+1][pos[1]] == 1:
             DrawHorizontalWall(pos[0]+1, pos[1], "Black")
-
-        time.sleep(delay)
-        t.goto(t.xcor(), t.ycor() - SQUARE_SIZE/2)
-
     #Left
     if verticalWalls[pos[0]][pos[1]] == -1:
         verticalWalls[pos[0]][pos[1]] = mapVW[pos[0]][pos[1]]
-
-        wallsChecked += 1
-        t.goto(t.xcor() - SQUARE_SIZE/2, t.ycor())
-
         if verticalWalls[pos[0]][pos[1]] == 1:
             DrawVerticalWall(pos[0], pos[1], "Black")
-
-        time.sleep(delay)
-        t.goto(t.xcor() + SQUARE_SIZE/2, t.ycor())
     
     #Right
     if verticalWalls[pos[0]][pos[1]+1] == -1:
         verticalWalls[pos[0]][pos[1]+1] = mapVW[pos[0]][pos[1]+1]
-
-        wallsChecked += 1
-        t.goto(t.xcor() + SQUARE_SIZE/2, t.ycor())
-
         if verticalWalls[pos[0]][pos[1]+1] == 1:
             DrawVerticalWall(pos[0], pos[1]+1, "Black")
-
-        time.sleep(delay)
-        t.goto(t.xcor() - SQUARE_SIZE/2, t.ycor())
-    
-
 def DrawVerticalWall(y, x, color):
     pen.pencolor(color)
     pen.width(5)
@@ -121,7 +96,6 @@ def DrawVerticalWall(y, x, color):
     pen.goto(x*SQUARE_SIZE, y*SQUARE_SIZE)
     pen.pendown()
     pen.forward(SQUARE_SIZE)
-
 def DrawHorizontalWall(y, x, color):
     pen.pencolor(color)
     pen.width(5)
@@ -130,7 +104,6 @@ def DrawHorizontalWall(y, x, color):
     pen.goto(x*SQUARE_SIZE, y*SQUARE_SIZE)
     pen.pendown()
     pen.forward(SQUARE_SIZE)
-
 def DrawPath(color, position):
     currentPos = position
     pen.pencolor(color)
@@ -156,14 +129,12 @@ def DrawPath(color, position):
         
         pen.goto(currentPos[1]*SQUARE_SIZE + SQUARE_SIZE/2, currentPos[0]*SQUARE_SIZE + SQUARE_SIZE/2)
 #endregion
-
 #region Graphics Setup
 screen = Screen()
 screen.setup(LENGTH*SQUARE_SIZE + 5, WIDTH*SQUARE_SIZE + 5)
 screen.setworldcoordinates(0, 0, LENGTH*SQUARE_SIZE, WIDTH*SQUARE_SIZE)
 screen.setup(1.0, 1.0)
 screen.title("Maze")
-
 pen = Turtle()
 pen.speed(0)
 pen.hideturtle()
@@ -171,14 +142,12 @@ pen.pencolor("Black")
 pen.penup()
 pen.goto(0,0)
 pen.pendown()
-
 #Draw Frame
 for i in range(2):
     pen.forward(LENGTH*SQUARE_SIZE)
     pen.left(90)
     pen.forward(WIDTH*SQUARE_SIZE)
     pen.left(90)
-
 #Draw Grid
 pen.setheading(90)
 pen.pencolor("Grey")
@@ -187,14 +156,12 @@ for i in range(LENGTH-1):
     pen.goto((i+1)*SQUARE_SIZE, 0)
     pen.pendown()
     pen.forward(WIDTH*SQUARE_SIZE)
-
 pen.setheading(0)
 for i in range(WIDTH-1):
     pen.penup()
     pen.goto(0, (i+1)*SQUARE_SIZE)
     pen.pendown()
     pen.forward(LENGTH*SQUARE_SIZE)
-
 #Fill Start and end
 pen.fillcolor("Lime")
 pen.penup()
@@ -206,7 +173,6 @@ for pos in GoalSquares:
         pen.forward(SQUARE_SIZE-1)
         pen.left(90)
     pen.end_fill()
-
 pen.fillcolor("Red")
 pen.goto(startPosition[1]*SQUARE_SIZE+1, startPosition[0]*SQUARE_SIZE)
 pen.begin_fill()
@@ -214,7 +180,6 @@ for i in range(4):
     pen.forward(SQUARE_SIZE-1)
     pen.left(90)
 pen.end_fill()
-
 #Draw Map Walls
 # pen.pencolor("Blue")
 # pen.width(5)
@@ -233,8 +198,6 @@ pen.end_fill()
 #         pen.goto(s[1]*SQUARE_SIZE, s[0]*SQUARE_SIZE)
 #         pen.pendown()
 #         pen.goto(x*SQUARE_SIZE, WIDTH*SQUARE_SIZE)
-
-
 # pen.penup()
 # for y in range(WIDTH+1):
 #     s = [y,0]
@@ -251,7 +214,6 @@ pen.end_fill()
 #         pen.goto(s[1]*SQUARE_SIZE, s[0]*SQUARE_SIZE)
 #         pen.pendown()
 #         pen.goto(LENGTH*SQUARE_SIZE, y*SQUARE_SIZE)
-
 #Draw Known Walls
 pen.pencolor("Black")
 pen.width(5)
@@ -264,9 +226,7 @@ for i in range(2):
     pen.left(90)
     pen.forward(WIDTH*SQUARE_SIZE)
     pen.left(90)
-
 #endregion
-
 t = Turtle()
 t.hideturtle()
 t.speed(1)
@@ -275,7 +235,6 @@ t.color("Black")
 t.penup()
 t.goto(startPosition[1]*SQUARE_SIZE + SQUARE_SIZE/2, startPosition[0]*SQUARE_SIZE + SQUARE_SIZE/2)
 t.showturtle()
-
 currentPos = startPosition.copy()
 finished = False
 while not finished:
@@ -291,7 +250,6 @@ while not finished:
         finished = True
         print("Reached End")
         continue
-
     while True:
         CheckWalls(currentPos)
         nextVal = spaces[currentPos[0]][currentPos[1]] - 1
@@ -313,12 +271,8 @@ while not finished:
         
         t.goto(currentPos[1]*SQUARE_SIZE + SQUARE_SIZE/2, currentPos[0]*SQUARE_SIZE + SQUARE_SIZE/2)
         time.sleep(0.05)
-
     time.sleep(0.05)
     screen.update()
-
 DrawPath("Orange", startPosition.copy())
-print(wallsChecked)
-
 while True:
     screen.update()

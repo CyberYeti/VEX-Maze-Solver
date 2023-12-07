@@ -9,6 +9,8 @@ brain=Brain()
 xMotor = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
 yMotor1 = Motor(Ports.PORT9, GearSetting.RATIO_18_1, True)
 yMotor2 = Motor(Ports.PORT21, GearSetting.RATIO_18_1, False)
+Button1 = Bumper(brain.three_wire_port.a)
+
 
 # wait for rotation sensor to fully initialize
 wait(30, MSEC)
@@ -46,11 +48,11 @@ tolerence = 2
 #Maze Info
 ROW, COL = 6, 6
 SQUARE_SIZE = 35
-x0, y0 = 47.5, 30 #represents the position of the first grid square
+x0, y0 = 50, 35 #represents the position of the first grid square
 cx, cx = 0, 0 #represents the current coordinate
 
-xTorqueThesh = 2
-yTorqueThesh = 5
+xTorqueThesh = 3
+yTorqueThesh = 6
 
 #Degrees to mm
 chainLinkLen = 255.0/25
@@ -170,9 +172,70 @@ def moveHorizontalTile(numTiles):
     goto(cx*(SQUARE_SIZE + 2), cy*(SQUARE_SIZE + 1))
 #endregion
 
-# homeDevice()
+brain.screen.print("Remove the maze before homing.")
+brain.screen.set_cursor(2,1)
+brain.screen.print("Press the button when ready")
+while not Button1.pressing():
+    time.sleep(updateDelay)
+
 zeroMaze()
-time.sleep(waitDelay)
+
+brain.screen.clear_screen()
+brain.screen.set_cursor(1,1)
+brain.screen.print("The device has been homed.")
+brain.screen.set_cursor(2,1)
+brain.screen.print("Put the maze on the device.")
+brain.screen.set_cursor(3,1)
+brain.screen.print("Make sure the maze is in the right orientation.")
+brain.screen.set_cursor(4,1)
+brain.screen.print("Press the button when ready")
+while not Button1.pressing():
+    time.sleep(updateDelay)
+
 moveVerticalTile(5)
-moveHorizontalTile(5)
+moveHorizontalTile(1)
+moveVerticalTile(-2)
+moveHorizontalTile(1)
+moveVerticalTile(-1)
+moveHorizontalTile(1)
+moveVerticalTile(2)
+moveHorizontalTile(-1)
+moveVerticalTile(1)
+moveHorizontalTile(1)
+time.sleep(waitDelay)
+
+moveHorizontalTile(-1)
+moveVerticalTile(-1)
+moveHorizontalTile(1)
+moveVerticalTile(-3)
+time.sleep(waitDelay)
+
+moveVerticalTile(1)
+moveHorizontalTile(-2)
+time.sleep(waitDelay)
+
+moveHorizontalTile(1)
+moveVerticalTile(1)
+moveHorizontalTile(-1)
+moveVerticalTile(2)
+moveHorizontalTile(-1)
 moveVerticalTile(-5)
+moveHorizontalTile(1)
+time.sleep(waitDelay)
+
+moveHorizontalTile(-1)
+moveVerticalTile(1)
+moveHorizontalTile(2)
+moveVerticalTile(-1)
+moveHorizontalTile(2)
+moveVerticalTile(3)
+moveHorizontalTile(1)
+moveVerticalTile(1)
+moveHorizontalTile(-1)
+moveVerticalTile(1)
+moveHorizontalTile(1)
+time.sleep(waitDelay)
+
+xMotor.set_stopping(BRAKE)
+yMotor1.set_stopping(BRAKE)
+yMotor2.set_stopping(BRAKE)

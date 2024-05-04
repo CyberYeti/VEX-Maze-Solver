@@ -6,11 +6,14 @@ import urandom
 brain=Brain()
 
 # Robot configuration code
+bottomIR = Distance(Ports.PORT1)
+leftIR = Distance(Ports.PORT2)
+rightIR = Distance(Ports.PORT16)
+topIR = Distance(Ports.PORT17)
 yMotor1 = Motor(Ports.PORT21, GearSetting.RATIO_18_1, False)
 yMotor2 = Motor(Ports.PORT11, GearSetting.RATIO_18_1, True)
 xMotor = Motor(Ports.PORT20, GearSetting.RATIO_18_1, False)
 Button1 = Bumper(brain.three_wire_port.a)
-
 
 # wait for rotation sensor to fully initialize
 wait(30, MSEC)
@@ -40,30 +43,28 @@ print("\033[2J")
 import time, math
 
 #region Variables
-velo = 75
+velo = 12.5
 waitDelay = 0.5
 updateDelay = 0.05
-tolerence = 2
+tolerence = 1
 
 #Maze Info
 ROW, COL = 6, 6
-SQUARE_SIZE = 35
-x0, y0 = 50, 35 #represents the position of the first grid square
+squareXDeg = 1067/5 #degrees x motor needs to turn to move 1 square
+squareYDeg = 525/5 #degrees y motor needs to turn to move 1 square
+x0, y0 = 174, 114 #represents the position of the first grid square
 cx, cx = 0, 0 #represents the current coordinate
 
 xTorqueThesh = 3
 yTorqueThesh = 6
 
-#Degrees to mm
-chainLinkLen = 255.0/25
-dtmx = 12*chainLinkLen/360
-dtmy = 6*chainLinkLen/360
-maxdtm = max(abs(dtmx), abs(dtmy))
-
 #Velocity Multipliers
 #This is for making the speed of the x and y axis the same despite different gear ratios
-vmx = abs(dtmy/maxdtm)
-vmy = abs(dtmx/maxdtm)
+xTeeth = 6
+yTeeth = 12
+maxTeeth = max(xTeeth, yTeeth)
+vmx = xTeeth/maxTeeth
+vmy = yTeeth/maxTeeth
 
 #endregion
 
@@ -101,10 +102,10 @@ def movex(velocity):
         xMotor.set_velocity(velocity*vmy, PERCENT)
 
 def gety():
-    return yMotor1.position(DEGREES)*dtmx
+    return yMotor1.position(DEGREES)
 
 def getx():
-    return xMotor.position(DEGREES)*dtmy
+    return xMotor.position(DEGREES)
 
 def collideY():
     return yMotor1.torque(TorqueUnits.INLB) > yTorqueThesh
@@ -131,7 +132,7 @@ def homeDevice():
         pass
 
     #Second Home
-    movey(-20)
+    movey(-10)
     time.sleep(waitDelay)
     while not collideY():
         time.sleep(updateDelay)
@@ -151,11 +152,11 @@ def homeDevice():
 
     # Move Back again for second Home
     movex(75)
-    while xMotor.position(DEGREES) < 180:
+    while xMotor.position(DEGREES) < 90:
         pass
 
     # Second Home
-    movex(-20)
+    movex(-10)
     time.sleep(waitDelay)
     while not collideX():
         time.sleep(updateDelay)
@@ -178,6 +179,18 @@ def goto(x,y):
         else:
             movey(0)
 
+def moveToTile(x,y):
+    #keeps the targeted tile in bounds
+    global cx, cy
+    cx = min(max(x,0),5)
+    cy = min(max(y,0),5)
+
+    #send error if out of bounds
+    if cx != x or cy != y:
+        raise Exception("Attempted to move to a tile out of bounds. (" + str(x) + "," + str(y) + ")")
+
+    goto(cx*squareXDeg, cy*squareYDeg)
+
 def zeroMaze():
     homeDevice()
     goto(x0, y0)
@@ -186,89 +199,32 @@ def zeroMaze():
     yMotor2.set_position(0,DEGREES)
     global cx, cy
     cx, cy = 0, 0
-
-#These two movement functions are created to prevent me from accidentally making diagonal moves.
-def moveVerticalTile(numTiles):
-    global cy
-    cy = cy + numTiles
-    cy = min(cy, ROW-1)
-    cy = max(cy, 0)
-        
-    goto(cx*(SQUARE_SIZE + 2), cy*(SQUARE_SIZE + 1))
-
-def moveHorizontalTile(numTiles):
-    global cx
-    cx = cx + numTiles
-    cx = min(cx, COL-1)
-    cx = max(cx, 0)
-        
-    goto(cx*(SQUARE_SIZE + 2), cy*(SQUARE_SIZE + 1))
 #endregion
 
-brain.screen.print("Remove the maze before homing.")
-brain.screen.set_cursor(2,1)
-brain.screen.print("Press the button when ready")
-while not Button1.pressing():
-    time.sleep(updateDelay)
+#Actual Code
+while True:
+    zeroMaze()
 
-zeroMaze()
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1,1)
+    brain.screen.print("The device has been homed.")
+    brain.screen.set_cursor(2,1)
+    brain.screen.print("Put the maze on the device.")
+    brain.screen.set_cursor(3,1)
+    brain.screen.print("Make sure the maze is in the right orientation.")
+    brain.screen.set_cursor(4,1)
+    brain.screen.print("Press the button when ready")
+    # while not Button1.pressing():
+    #     time.sleep(updateDelay)
 
-brain.screen.clear_screen()
-brain.screen.set_cursor(1,1)
-brain.screen.print("The device has been homed.")
-brain.screen.set_cursor(2,1)
-brain.screen.print("Put the maze on the device.")
-brain.screen.set_cursor(3,1)
-brain.screen.print("Make sure the maze is in the right orientation.")
-brain.screen.set_cursor(4,1)
-brain.screen.print("Press the button when ready")
-while not Button1.pressing():
-    time.sleep(updateDelay)
+    #moveVerticalTile(5)
+    #moveHorizontalTile(5)
 
-moveVerticalTile(5)
-moveHorizontalTile(1)
-moveVerticalTile(-2)
-moveHorizontalTile(1)
-moveVerticalTile(-1)
-moveHorizontalTile(1)
-moveVerticalTile(2)
-moveHorizontalTile(-1)
-moveVerticalTile(1)
-moveHorizontalTile(1)
-time.sleep(waitDelay)
+    moveToTile(5,5)
 
-moveHorizontalTile(-1)
-moveVerticalTile(-1)
-moveHorizontalTile(1)
-moveVerticalTile(-3)
-time.sleep(waitDelay)
+    xMotor.set_stopping(BRAKE)
+    yMotor1.set_stopping(BRAKE)
+    yMotor2.set_stopping(BRAKE)
 
-moveVerticalTile(1)
-moveHorizontalTile(-2)
-time.sleep(waitDelay)
-
-moveHorizontalTile(1)
-moveVerticalTile(1)
-moveHorizontalTile(-1)
-moveVerticalTile(2)
-moveHorizontalTile(-1)
-moveVerticalTile(-5)
-moveHorizontalTile(1)
-time.sleep(waitDelay)
-
-moveHorizontalTile(-1)
-moveVerticalTile(1)
-moveHorizontalTile(2)
-moveVerticalTile(-1)
-moveHorizontalTile(2)
-moveVerticalTile(3)
-moveHorizontalTile(1)
-moveVerticalTile(1)
-moveHorizontalTile(-1)
-moveVerticalTile(1)
-moveHorizontalTile(1)
-time.sleep(waitDelay)
-
-xMotor.set_stopping(BRAKE)
-yMotor1.set_stopping(BRAKE)
-yMotor2.set_stopping(BRAKE)
+    while not Button1.pressing():
+        time.sleep(updateDelay)

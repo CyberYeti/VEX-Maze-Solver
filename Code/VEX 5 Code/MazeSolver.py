@@ -14,6 +14,9 @@ yMotor1 = Motor(Ports.PORT21, GearSetting.RATIO_18_1, False)
 yMotor2 = Motor(Ports.PORT11, GearSetting.RATIO_18_1, True)
 xMotor = Motor(Ports.PORT20, GearSetting.RATIO_18_1, False)
 Button1 = Bumper(brain.three_wire_port.a)
+AdjustUP = Bumper(brain.three_wire_port.f)
+AdjustDown = Bumper(brain.three_wire_port.h)
+
 
 # wait for rotation sensor to fully initialize
 wait(30, MSEC)
@@ -192,39 +195,83 @@ def moveToTile(x,y):
     goto(cx*squareXDeg, cy*squareYDeg)
 
 def zeroMaze():
+    global x0, y0
     homeDevice()
     goto(x0, y0)
+
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1,1)
+    brain.screen.print("Adjust X")
+    while not Button1.pressing():
+        if AdjustUP.pressing():
+            x0 += 5;
+            goto(x0, y0)
+        elif AdjustDown.pressing():
+            x0 -= 5;
+            goto(x0, y0)
+
+    while Button1.pressing():
+        time.sleep(updateDelay)
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1,1)
+    brain.screen.print("Adjust Y")
+    while not Button1.pressing():
+        if AdjustUP.pressing():
+            y0 += 5;
+            goto(x0, y0)
+        elif AdjustDown.pressing():
+            y0 -= 5;
+            goto(x0, y0)
+
     xMotor.set_position(0,DEGREES)
     yMotor1.set_position(0,DEGREES)
     yMotor2.set_position(0,DEGREES)
     global cx, cy
     cx, cy = 0, 0
+
+def wall(IR):
+    return IR.object_distance(MM) < 20
 #endregion
 
 #Actual Code
 while True:
     zeroMaze()
+    
+    px, py = -1, -1
+    pdir = ""
+    while True:
+        if not wall(topIR) and pdir != "d":
+            cy += 1
+            pdir = "u"
+        elif not wall(bottomIR) and pdir != "u":
+            cy -= 1
+            pdir = "d"
+        elif not wall(leftIR) and pdir != "r":
+            cx -= 1
+            pdir = "l"
+        elif not wall(rightIR) and pdir != "l":
+            cx += 1
+            pdir = "r"
+        else:
+            break
 
-    brain.screen.clear_screen()
-    brain.screen.set_cursor(1,1)
-    brain.screen.print("The device has been homed.")
-    brain.screen.set_cursor(2,1)
-    brain.screen.print("Put the maze on the device.")
-    brain.screen.set_cursor(3,1)
-    brain.screen.print("Make sure the maze is in the right orientation.")
-    brain.screen.set_cursor(4,1)
-    brain.screen.print("Press the button when ready")
-    # while not Button1.pressing():
-    #     time.sleep(updateDelay)
+        moveToTile(cx, cy)
+        px = cx
+        py = cy
 
-    #moveVerticalTile(5)
-    #moveHorizontalTile(5)
-
-    moveToTile(5,5)
-
+        brain.screen.clear_screen()
+        brain.screen.set_cursor(1,1)
+        brain.screen.print("(" + str(cx) + "," + str(cy) + ")")
+        time.sleep(0.05)
+        
+    
     xMotor.set_stopping(BRAKE)
     yMotor1.set_stopping(BRAKE)
     yMotor2.set_stopping(BRAKE)
 
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1,1)
+    brain.screen.print("Exited At (" + str(cx) + "," + str(cy) + ")")
+    
     while not Button1.pressing():
         time.sleep(updateDelay)

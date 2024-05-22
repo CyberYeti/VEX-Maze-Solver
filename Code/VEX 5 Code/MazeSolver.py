@@ -10,12 +10,12 @@ bottomIR = Distance(Ports.PORT1)
 leftIR = Distance(Ports.PORT2)
 rightIR = Distance(Ports.PORT16)
 topIR = Distance(Ports.PORT17)
-yMotor1 = Motor(Ports.PORT21, GearSetting.RATIO_18_1, False)
-yMotor2 = Motor(Ports.PORT11, GearSetting.RATIO_18_1, True)
-xMotor = Motor(Ports.PORT20, GearSetting.RATIO_18_1, False)
-Button1 = Bumper(brain.three_wire_port.a)
 AdjustUP = Bumper(brain.three_wire_port.f)
 AdjustDown = Bumper(brain.three_wire_port.h)
+xMotor = Motor(Ports.PORT20, GearSetting.RATIO_18_1, False)
+yMotor1 = Motor(Ports.PORT21, GearSetting.RATIO_18_1, False)
+yMotor2 = Motor(Ports.PORT11, GearSetting.RATIO_18_1, True)
+Button1 = Bumper(brain.three_wire_port.a)
 
 
 # wait for rotation sensor to fully initialize
@@ -192,7 +192,76 @@ def moveToTile(x,y):
     if cx != x or cy != y:
         raise Exception("Attempted to move to a tile out of bounds. (" + str(x) + "," + str(y) + ")")
 
-    goto(cx*squareXDeg, cy*squareYDeg)
+    tx = cx*squareXDeg
+    ty = cy*squareYDeg
+    goto(tx, ty)
+
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1,1)
+    brain.screen.print("(" + str(tx-xMotor.position(DEGREES)) + "," + str(ty-yMotor1.position(DEGREES)) + ")")
+
+    time.sleep(1)
+
+def moveTile(d):
+    global cx, cy
+
+    if d == "up":
+        #make sure target direction does not have a wall
+        if wall(topIR):
+            raise Exception("Attempted to move in a blocked direction. (" + d + ")")
+
+        #move up until bottom ir can see the empty wall slot again
+        movey(velo)
+        while True:
+            if (yMotor1.position(DEGREES) > (cy+0.5)*squareYDeg) and not wall(bottomIR):
+                break
+            time.sleep(updateDelay)
+        cy += 1
+
+    elif d == "down":
+        #make sure target direction does not have a wall
+        if wall(bottomIR):
+            raise Exception("Attempted to move in a blocked direction. (" + d + ")")
+
+        #move down until top ir can see the empty wall slot again
+        movey(-velo)
+        while True:
+            if (yMotor1.position(DEGREES) < (cy-0.5)*squareYDeg) and not wall(topIR):
+                break
+            time.sleep(updateDelay)
+        cy -= 1
+
+    elif d == "left":
+        #make sure target direction does not have a wall
+        if wall(leftIR):
+            raise Exception("Attempted to move in a blocked direction. (" + d + ")")
+            
+        #move left until right ir can see the empty wall slot again
+        movex(-velo)
+        while True:
+            if (xMotor.position(DEGREES) < (cx-0.5)*squareXDeg) and not wall(rightIR):
+                break
+            time.sleep(updateDelay)
+        cx -= 1
+        
+    elif d == "right":
+        #make sure target direction does not have a wall
+        if wall(rightIR):
+            raise Exception("Attempted to move in a blocked direction. (" + d + ")")
+            
+        #move right until left ir can see the empty wall slot again
+        movex(velo)
+        while True:
+            if (xMotor.position(DEGREES) > (cx+0.5)*squareXDeg) and not wall(leftIR):
+                break
+            time.sleep(updateDelay)
+        cx += 1
+    else:
+        raise Exception("Attempted to move in an unknown direction. (" + d + ")")
+    
+    #stop moving
+    movey(0)
+    movex(0)
 
 def zeroMaze():
     global x0, y0
@@ -241,37 +310,31 @@ while True:
     pdir = ""
     while True:
         if not wall(topIR) and pdir != "d":
-            cy += 1
+            moveTile("up")
             pdir = "u"
         elif not wall(bottomIR) and pdir != "u":
-            cy -= 1
+            moveTile("down")
             pdir = "d"
         elif not wall(leftIR) and pdir != "r":
-            cx -= 1
+            moveTile("left")
             pdir = "l"
         elif not wall(rightIR) and pdir != "l":
-            cx += 1
+            moveTile("right")
             pdir = "r"
         else:
             break
 
-        moveToTile(cx, cy)
         px = cx
         py = cy
 
-        brain.screen.clear_screen()
-        brain.screen.set_cursor(1,1)
-        brain.screen.print("(" + str(cx) + "," + str(cy) + ")")
+        # brain.screen.clear_screen()
+        # brain.screen.set_cursor(1,1)
+        # brain.screen.print("(" + str(cx) + "," + str(cy) + ")")
         time.sleep(0.05)
-        
-    
-    xMotor.set_stopping(BRAKE)
-    yMotor1.set_stopping(BRAKE)
-    yMotor2.set_stopping(BRAKE)
 
-    brain.screen.clear_screen()
-    brain.screen.set_cursor(1,1)
-    brain.screen.print("Exited At (" + str(cx) + "," + str(cy) + ")")
+    # brain.screen.clear_screen()
+    # brain.screen.set_cursor(1,1)
+    # brain.screen.print("Exited At (" + str(cx) + "," + str(cy) + ")")
     
     while not Button1.pressing():
         time.sleep(updateDelay)

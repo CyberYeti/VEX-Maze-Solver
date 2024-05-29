@@ -10,8 +10,6 @@ bottomIR = Distance(Ports.PORT1)
 leftIR = Distance(Ports.PORT2)
 rightIR = Distance(Ports.PORT16)
 topIR = Distance(Ports.PORT17)
-AdjustUP = Bumper(brain.three_wire_port.f)
-AdjustDown = Bumper(brain.three_wire_port.h)
 xMotor = Motor(Ports.PORT20, GearSetting.RATIO_18_1, False)
 yMotor1 = Motor(Ports.PORT21, GearSetting.RATIO_18_1, False)
 yMotor2 = Motor(Ports.PORT11, GearSetting.RATIO_18_1, True)
@@ -47,6 +45,7 @@ import time, math
 
 #region Variables
 velo = 12.5
+slowVelo = 10
 waitDelay = 0.5
 updateDelay = 0.05
 tolerence = 1
@@ -80,13 +79,21 @@ xMotor.set_velocity(0, PERCENT)
 yMotor1.set_velocity(0, PERCENT)
 yMotor2.set_velocity(0, PERCENT)
 
-xMotor.set_stopping(HOLD)
-yMotor1.set_stopping(HOLD)
-yMotor2.set_stopping(HOLD)
+# xMotor.set_stopping(HOLD)
+# yMotor1.set_stopping(HOLD)
+# yMotor2.set_stopping(HOLD)
+xMotor.set_stopping(BRAKE)
+yMotor1.set_stopping(BRAKE)
+yMotor2.set_stopping(BRAKE)
 
 #endregion
 
 #region Function Def
+def print(text):
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1,1)
+    brain.screen.print(text)
+
 def movey(velocity):
     if velocity == 0:
         yMotor1.stop()
@@ -182,79 +189,54 @@ def goto(x,y):
         else:
             movey(0)
 
-def moveToTile(x,y):
-    #keeps the targeted tile in bounds
+def zeroMaze():
+    global x0, y0
+    homeDevice()
+    goto(x0, y0)
+
+    xMotor.set_position(0,DEGREES)
+    yMotor1.set_position(0,DEGREES)
+    yMotor2.set_position(0,DEGREES)
     global cx, cy
-    cx = min(max(x,0),5)
-    cy = min(max(y,0),5)
-
-    #send error if out of bounds
-    if cx != x or cy != y:
-        raise Exception("Attempted to move to a tile out of bounds. (" + str(x) + "," + str(y) + ")")
-
-    tx = cx*squareXDeg
-    ty = cy*squareYDeg
-    goto(tx, ty)
-
-    brain.screen.clear_screen()
-    brain.screen.set_cursor(1,1)
-    brain.screen.print("(" + str(tx-xMotor.position(DEGREES)) + "," + str(ty-yMotor1.position(DEGREES)) + ")")
-
-    time.sleep(1)
+    cx, cy = 0, 0
 
 def moveTile(d):
     global cx, cy
 
     if d == "up":
-        #make sure target direction does not have a wall
-        if wall(topIR):
-            raise Exception("Attempted to move in a blocked direction. (" + d + ")")
-
         #move up until bottom ir can see the empty wall slot again
         movey(velo)
         while True:
-            if (yMotor1.position(DEGREES) > (cy+0.5)*squareYDeg) and not wall(bottomIR):
-                break
-            time.sleep(updateDelay)
+            if (yMotor1.position(DEGREES) > (cy+0.75)*squareYDeg):
+                if not wall(bottomIR):
+                    break
         cy += 1
 
     elif d == "down":
-        #make sure target direction does not have a wall
-        if wall(bottomIR):
-            raise Exception("Attempted to move in a blocked direction. (" + d + ")")
-
         #move down until top ir can see the empty wall slot again
         movey(-velo)
         while True:
-            if (yMotor1.position(DEGREES) < (cy-0.5)*squareYDeg) and not wall(topIR):
-                break
-            time.sleep(updateDelay)
+            if (yMotor1.position(DEGREES) > (cy-0.75)*squareYDeg):
+                if not wall(topIR):
+                    break
         cy -= 1
 
     elif d == "left":
-        #make sure target direction does not have a wall
-        if wall(leftIR):
-            raise Exception("Attempted to move in a blocked direction. (" + d + ")")
-            
         #move left until right ir can see the empty wall slot again
         movex(-velo)
         while True:
-            if (xMotor.position(DEGREES) < (cx-0.5)*squareXDeg) and not wall(rightIR):
-                break
-            time.sleep(updateDelay)
+            if (xMotor.position(DEGREES) < (cx-0.75)*squareXDeg):
+                if not wall(rightIR):
+                    break
         cx -= 1
         
     elif d == "right":
-        #make sure target direction does not have a wall
-        if wall(rightIR):
-            raise Exception("Attempted to move in a blocked direction. (" + d + ")")
-            
         #move right until left ir can see the empty wall slot again
         movex(velo)
         while True:
-            if (xMotor.position(DEGREES) > (cx+0.5)*squareXDeg) and not wall(leftIR):
-                break
-            time.sleep(updateDelay)
+            if (xMotor.position(DEGREES) > (cx+0.75)*squareXDeg):
+                if not wall(leftIR):
+                    break
         cx += 1
     else:
         raise Exception("Attempted to move in an unknown direction. (" + d + ")")
@@ -263,78 +245,172 @@ def moveTile(d):
     movey(0)
     movex(0)
 
-def zeroMaze():
-    global x0, y0
-    homeDevice()
-    goto(x0, y0)
-
-    brain.screen.clear_screen()
-    brain.screen.set_cursor(1,1)
-    brain.screen.print("Adjust X")
-    while not Button1.pressing():
-        if AdjustUP.pressing():
-            x0 += 5;
-            goto(x0, y0)
-        elif AdjustDown.pressing():
-            x0 -= 5;
-            goto(x0, y0)
-
-    while Button1.pressing():
-        time.sleep(updateDelay)
-    brain.screen.clear_screen()
-    brain.screen.set_cursor(1,1)
-    brain.screen.print("Adjust Y")
-    while not Button1.pressing():
-        if AdjustUP.pressing():
-            y0 += 5;
-            goto(x0, y0)
-        elif AdjustDown.pressing():
-            y0 -= 5;
-            goto(x0, y0)
-
-    xMotor.set_position(0,DEGREES)
-    yMotor1.set_position(0,DEGREES)
-    yMotor2.set_position(0,DEGREES)
-    global cx, cy
-    cx, cy = 0, 0
-
 def wall(IR):
-    return IR.object_distance(MM) < 20
+    return IR.object_distance(MM) < 40
+#endregion
+
+#region Pathfinding
+HEIGHT, WIDTH = 6,6
+SQUARE_SIZE = 40
+spaces = [[-1 for _ in range(HEIGHT)] for _ in range(WIDTH)]
+#-1 : Unknown
+# 0 : Clear
+# 1 : Wall
+verticalWalls = [[-1 for _ in range(HEIGHT)] for _ in range(WIDTH+1)]
+for x in range(len(verticalWalls)):
+    for y in range(len(verticalWalls[x])):
+        if x == 0 or x == WIDTH:
+            verticalWalls[x][y] = 1
+
+horizontalWalls = [[-1 for _ in range(HEIGHT+1)] for _ in range(WIDTH)]
+for x in range(len(horizontalWalls)):
+    for y in range(len(horizontalWalls[x])):
+        if y == 0 or y == HEIGHT:
+            horizontalWalls[x][y] = 1
+
+GoalSquares = [[WIDTH-1, HEIGHT-1]]
+
+def CheckWall(pos, d):
+    global horizontalWalls, verticalWalls
+    if d == "up":
+        return horizontalWalls[pos[0]][pos[1]+1]
+    elif d == "down":
+        return horizontalWalls[pos[0]][pos[1]]
+    elif d == "right":
+        return verticalWalls[pos[0]+1][pos[1]]
+    elif d == "left":
+        return verticalWalls[pos[0]][pos[1]]
+    else:
+        raise Exception("Attempted to check an unknown direction. (" + d + ")")
+
+def SetWall(pos, d, v):
+    global horizontalWalls, verticalWalls
+    if d == "up":
+        horizontalWalls[pos[0]][pos[1]+1] = v
+    elif d == "down":
+        horizontalWalls[pos[0]][pos[1]] = v
+    elif d == "right":
+        verticalWalls[pos[0]+1][pos[1]] = v
+    elif d == "left":
+        verticalWalls[pos[0]][pos[1]] = v
+    else:
+        raise Exception("Attempted to check an unknown direction. (" + d + ")")
+
+def FloodFill():
+    global cx, cy
+    global horizontalWalls, verticalWalls
+
+    #Create an empty array to start FloodFilling. 
+    #Create a queue and add goal elements
+    spaces = [[-1 for _ in range(HEIGHT)] for _ in range(WIDTH)]
+    q = []
+    for pos in GoalSquares:
+        spaces[pos[0]][pos[1]] = 0
+        q.append(pos)
+
+    #Start searching elements
+    while len(q) != 0:
+        pos = q.pop(0)
+        value = spaces[pos[0]][pos[1]] + 1
+        
+        #Up
+        if CheckWall(pos, "up") != 1 and spaces[pos[0]][pos[1]+1] == -1:
+            spaces[pos[0]][pos[1]+1]  = value
+            q.append([pos[0],pos[1]+1] )
+
+        #Down
+        if CheckWall(pos, "down") != 1 and spaces[pos[0]][pos[1]-1] == -1:
+            spaces[pos[0]][pos[1]-1] = value
+            q.append([pos[0],pos[1]-1])
+
+        #Left
+        if CheckWall(pos, "left") != 1 and spaces[pos[0]-1][pos[1]] == -1:
+            spaces[pos[0]-1][pos[1]] = value
+            q.append([pos[0]-1,pos[1]])
+        
+        #Right
+        if CheckWall(pos, "right") != 1 and spaces[pos[0]+1][pos[1]] == -1:
+            spaces[pos[0]+1][pos[1]] = value
+            q.append([pos[0]+1,pos[1]])
+    return spaces
+
+def UpdateWalls(pos):
+    #Up
+    if CheckWall(pos, "up") == -1:
+        if wall(topIR):
+            SetWall(pos, "up", 1)
+        else:
+            SetWall(pos, "up", 0)
+
+    #Down
+    if CheckWall(pos, "down") == -1:
+        if wall(bottomIR):
+            SetWall(pos, "down", 1)
+        else:
+            SetWall(pos, "down", 0)
+
+    #Left
+    if CheckWall(pos, "left") == -1:
+        if wall(leftIR):
+            SetWall(pos, "left", 1)
+        else:
+            SetWall(pos, "left", 0)
+
+    #Right
+    if CheckWall(pos, "right") == -1:
+        if wall(rightIR):
+            SetWall(pos, "right", 1)
+        else:
+            SetWall(pos, "right", 0)
+
+def MazeSolve():
+    global cx, cy
+    currentPos = [cx,cy]
+    finished = False
+    while not finished:
+        spaces = FloodFill()
+        
+        #No path to current node
+        if spaces[currentPos[0]][currentPos[1]] == -1:
+            finished = True
+            print("No Solution")
+            continue
+        #Reached the end
+        if spaces[currentPos[0]][currentPos[1]] == 0:
+            finished = True
+            print("Reached End")
+            continue
+
+        while True:
+            UpdateWalls(currentPos)
+            nextVal = spaces[currentPos[0]][currentPos[1]] - 1
+            #Find Next Position
+            #Up
+            if CheckWall(currentPos, "up") != 1 and spaces[currentPos[0]][currentPos[1]+1] == nextVal:
+                currentPos[1] += 1
+                moveTile("up")
+            #Down
+            elif CheckWall(currentPos, "down") != 1 and spaces[currentPos[0]][currentPos[1]-1] == nextVal:
+                currentPos[1] -= 1
+                moveTile("down")
+            #Left
+            elif CheckWall(currentPos, "left") != 1 and spaces[currentPos[0]-1][currentPos[1]] == nextVal:
+                currentPos[0] -= 1
+                moveTile("left")
+            #Right
+            elif CheckWall(currentPos, "right") != 1 and spaces[currentPos[0]+1][currentPos[1]] == nextVal:
+                currentPos[0] += 1
+                moveTile("right")
+            else:
+                break
+
+            time.sleep(0.05)
+
+        time.sleep(0.05)
 #endregion
 
 #Actual Code
-while True:
-    zeroMaze()
-    
-    px, py = -1, -1
-    pdir = ""
-    while True:
-        if not wall(topIR) and pdir != "d":
-            moveTile("up")
-            pdir = "u"
-        elif not wall(bottomIR) and pdir != "u":
-            moveTile("down")
-            pdir = "d"
-        elif not wall(leftIR) and pdir != "r":
-            moveTile("left")
-            pdir = "l"
-        elif not wall(rightIR) and pdir != "l":
-            moveTile("right")
-            pdir = "r"
-        else:
-            break
-
-        px = cx
-        py = cy
-
-        # brain.screen.clear_screen()
-        # brain.screen.set_cursor(1,1)
-        # brain.screen.print("(" + str(cx) + "," + str(cy) + ")")
-        time.sleep(0.05)
-
-    # brain.screen.clear_screen()
-    # brain.screen.set_cursor(1,1)
-    # brain.screen.print("Exited At (" + str(cx) + "," + str(cy) + ")")
-    
-    while not Button1.pressing():
-        time.sleep(updateDelay)
+zeroMaze()
+while not Button1.pressing():
+    time.sleep(updateDelay)
+MazeSolve()
